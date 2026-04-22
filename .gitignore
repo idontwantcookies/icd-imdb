@@ -180,6 +180,7 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# DB
+# Database
+db/
 *.tsv
 *.parquet
