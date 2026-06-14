@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import mannwhitneyu
 
 
 episodes = pd.read_csv(
@@ -148,3 +149,67 @@ print(
     "\nGráfico salvo como:"
     "\nhistograma_episodios.png"
 )
+
+# ==========================
+# TESTE DE HIPÓTESE
+# ==========================
+# H0: a distribuição de averageRating dos episódios é a mesma antes e depois de 2010
+
+print("\n" + "="*60)
+print("TESTE DE HIPÓTESE - QUALIDADE DOS EPISÓDIOS (ANTES x APÓS 2010)")
+print("="*60)
+
+# Mann-Whitney U: não-paramétrico, não exige normalidade
+u_stat, p_mw = mannwhitneyu(
+    before["averageRating"],
+    after["averageRating"],
+    alternative="two-sided"
+)
+
+print(f"\nMann-Whitney U: p = {p_mw:.5f}")
+
+if p_mw < 0.05:
+    print("Conclusão: Existe diferença estatisticamente significativa "
+          "na qualidade dos episódios antes x após o streaming.")
+else:
+    print("Conclusão: Não foi encontrada diferença significativa "
+          "na qualidade dos episódios antes x após o streaming.")
+
+
+# Teste de permutação: confirma o resultado sem assumir distribuição teórica
+def permutation_test_diff_means(a, b, n_perm=10_000, seed=42):
+    rng = np.random.default_rng(seed)
+
+    a = np.asarray(a)
+    b = np.asarray(b)
+
+    observed_diff = a.mean() - b.mean()
+
+    pooled = np.concatenate([a, b])
+    n_a = len(a)
+
+    perm_diffs = np.empty(n_perm)
+
+    for i in range(n_perm):
+        shuffled = rng.permutation(pooled)
+        perm_diffs[i] = shuffled[:n_a].mean() - shuffled[n_a:].mean()
+
+    p_value = np.mean(np.abs(perm_diffs) >= np.abs(observed_diff))
+
+    return observed_diff, p_value
+
+
+diff_obs, p_perm = permutation_test_diff_means(
+    before["averageRating"],
+    after["averageRating"]
+)
+
+print(f"\nDiferença observada (Antes - Após): {diff_obs:.3f}")
+print(f"Permutação (10.000): p = {p_perm:.5f}")
+
+if p_perm < 0.05:
+    print("Conclusão: O teste de permutação confirma diferença "
+          "estatisticamente significativa.")
+else:
+    print("Conclusão: O teste de permutação não encontrou diferença "
+          "significativa.")
